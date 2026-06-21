@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Easily AI</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c5cfc'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-weight='bold'%3EE%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+  <!-- ==========================================
+       LOGIN SCREEN
+       ========================================== -->
+  <div id="login-screen">
+    <div class="login-container">
+      <div class="login-logo">
+        <div class="logo-icon">
+          <svg width="40" height="40" viewBox="0 0 32 32">
+            <rect width="32" height="32" rx="8" fill="#7c5cfc"/>
+            <text x="16" y="22" text-anchor="middle" fill="white" font-size="18" font-weight="bold">E</text>
+          </svg>
+        </div>
+        <h1>Easily AI</h1>
+        <p>500+ modelos de IA ao seu alcance</p>
+      </div>
+
+      <div class="login-tabs">
+        <button class="login-tab active" data-tab="login">Entrar</button>
+        <button class="login-tab" data-tab="register">Criar conta</button>
+      </div>
+
+      <div class="provider-selector">
+        <label class="provider-label">Provedor de modelos:</label>
+        <div class="provider-options">
+          <label class="provider-option active" data-provider="puter">
+            <input type="radio" name="mcp-provider" value="puter" checked>
+            <span class="provider-radio"></span>
+            <div class="provider-info">
+              <span class="provider-name">Puter MCP</span>
+              <span class="provider-desc">500+ modelos de IA</span>
+            </div>
+          </label>
+          <label class="provider-option" data-provider="claude_code">
+            <input type="radio" name="mcp-provider" value="claude_code">
+            <span class="provider-radio"></span>
+            <div class="provider-info">
+              <span class="provider-name">Free Claude Code</span>
+              <span class="provider-desc">Modelos gratuitos</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <input type="text" id="login-username" placeholder="Usuário" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+          <input type="password" id="login-password" placeholder="Senha" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-primary">Entrar</button>
+        <div class="login-error" id="login-error"></div>
+        <div class="login-loading" id="login-loading">
+          <span class="spinner"></span> Iniciando servidor MCP...
+        </div>
+      </form>
+
+      <form id="register-form" class="hidden">
+        <div class="form-group">
+          <input type="text" id="reg-username" placeholder="Crie um nome de usuário" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+          <input type="password" id="reg-password" placeholder="Crie uma senha" autocomplete="new-password" required>
+        </div>
+        <div class="form-group">
+          <input type="text" id="reg-display" placeholder="Nome (opcional)">
+        </div>
+        <button type="submit" class="btn-primary">Criar conta</button>
+        <div class="login-error" id="register-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       CHAT SCREEN
+       ========================================== -->
+  <div id="chat-screen">
+
+    <!-- Sidebar -->
+    <div class="chat-sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <button class="btn-new-chat" onclick="newChat()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Nova conversa
+        </button>
+      </div>
+
+      <div class="sidebar-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" id="session-search" placeholder="Buscar conversas..." oninput="filterSessions(this.value)">
+      </div>
+
+      <div class="sidebar-sessions" id="session-list">
+        <!-- Populado pelo JS -->
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <span id="sidebar-user">Carregando...</span>
+        </div>
+        <div class="sidebar-actions">
+          <button class="btn-icon" onclick="toggleTheme()" title="Alternar tema" id="theme-toggle">
+            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <button class="btn-icon" onclick="puterRelogin()" title="Relogar no Puter">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </button>
+          <button class="btn-icon" onclick="logout()" title="Sair">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar Toggle (Mobile) -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebar-toggle">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12h18M3 6h18M3 18h18"/>
+      </svg>
+    </button>
+
+    <!-- Main Chat Area -->
+    <div class="chat-main">
+      <!-- Header -->
+      <div class="chat-header">
+        <div class="header-left">
+          <div class="model-selector">
+            <select id="model-select">
+              <option value="gpt-5.4-nano">GPT 5.4 Nano</option>
+              <option value="gpt-4o">GPT 4o</option>
+              <option value="gpt-4o-mini">GPT 4o Mini</option>
+              <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+              <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+              <option value="claude-opus-4-8">Claude Opus 4.8</option>
+              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              <option value="deepseek-chat-v3">DeepSeek Chat V3</option>
+              <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+              <option value="mistral-large">Mistral Large</option>
+              <option value="qwen-max">Qwen Max</option>
+            </select>
+          </div>
+        </div>
+        <div class="header-center">
+          <span class="session-title" id="session-title">Nova conversa</span>
+        </div>
+        <div class="header-right">
+          <div class="imggen-toggle" title="Modo Geração de Imagem - ative para gerar imagens com IA">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <label class="toggle-switch">
+              <input type="checkbox" id="imggen-toggle" onchange="toggleImgGen()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="compat-toggle" title="Modo compatível - ative para modelos que retornam [object Object]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <label class="toggle-switch">
+              <input type="checkbox" id="compat-toggle" onchange="toggleCompat()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="streaming-toggle" title="Alternar streaming">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <label class="toggle-switch">
+              <input type="checkbox" id="streaming-toggle" checked onchange="toggleStreaming()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="mcp-status">
+            <span class="mcp-dot" id="mcp-dot"></span>
+            <span id="mcp-status-text">Verificando...</span>
+          </div>
+          <button class="btn-icon btn-filters-toggle" onclick="toggleRightPanel()" title="Filtrar por provedor">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 21v-7a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v7"/>
+              <path d="M9 21v-9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v9"/>
+              <path d="M16 21v-4a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v4"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs: Chat | Código | Preview -->
+      <div class="chat-tabs" id="chat-tabs">
+        <button class="chat-tab active" data-tab="chat" onclick="switchMainTab('chat')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          Chat
+        </button>
+        <button class="chat-tab" data-tab="codigo" onclick="switchMainTab('codigo')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 18 22 12 16 6"/>
+            <polyline points="8 6 2 12 8 18"/>
+          </svg>
+          Código
+          <span class="tab-badge" id="codigo-badge" style="display:none">0</span>
+        </button>
+        <button class="chat-tab" data-tab="preview" onclick="switchMainTab('preview')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          Preview
+          <span class="tab-badge" id="preview-badge" style="display:none">0</span>
+        </button>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="chat-body" id="chat-body">
+
+        <!-- TAB: Chat -->
+        <div class="tab-pane active" id="tab-chat">
+          <!-- Messages Area -->
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-welcome" id="welcome-message">
+              <div class="welcome-icon">
+                <svg width="48" height="48" viewBox="0 0 32 32">
+                  <rect width="32" height="32" rx="8" fill="#7c5cfc"/>
+                  <text x="16" y="22" text-anchor="middle" fill="white" font-size="18" font-weight="bold">E</text>
+                </svg>
+              </div>
+              <h2>Easily AI</h2>
+              <p>Como posso ajudar você hoje?</p>
+              <div class="examples-grid">
+                <button class="example-card" onclick="quickExample('Explique o que é uma API REST em termos simples')">
+                  <div class="example-icon">💡</div>
+                  <div class="example-text">
+                    <strong>O que é API REST?</strong>
+                    <span>Explique conceitos de forma simples</span>
+                  </div>
+                </button>
+                <button class="example-card" onclick="quickExample('Escreva um email profissional solicitando reunião')">
+                  <div class="example-icon">✉️</div>
+                  <div class="example-text">
+                    <strong>Email profissional</strong>
+                    <span>Redija emails formais</span>
+                  </div>
+                </button>
+                <button class="example-card" onclick="quickExample('Crie uma lista de 5 ideias para um aplicativo mobile')">
+                  <div class="example-icon">📱</div>
+                  <div class="example-text">
+                    <strong>Ideias de app</strong>
+                    <span>Crie listas e brainstorm</span>
+                  </div>
+                </button>
+                <button class="example-card" onclick="quickExample('Ajude-me a escrever uma função em JavaScript que ordena uma lista')">
+                  <div class="example-icon">💻</div>
+                  <div class="example-text">
+                    <strong>Código</strong>
+                    <span>Escreva e explique código</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drop Overlay -->
+          <div class="drop-overlay" id="drop-overlay">
+            <div class="drop-content">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              <p>Solte os arquivos aqui</p>
+            </div>
+          </div>
+
+          <!-- Input Area -->
+          <div class="chat-input-area">
+            <div class="preview-bar" id="preview-bar"></div>
+            <div class="chat-input-container">
+              <button class="attach-btn" onclick="triggerFileInput()" title="Anexar arquivo">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+              </button>
+              <input type="file" id="file-input" multiple accept="image/*,video/*,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx" hidden onchange="handleFileSelect(event)">
+              <textarea
+                id="chat-input"
+                rows="1"
+                placeholder="Mensagem para Easily AI..."
+                onkeydown="handleInputKeydown(event)"
+                oninput="autoResizeInput(this)"
+                onpaste="handlePaste(event)"
+              ></textarea>
+              <button class="btn-stop" id="btn-stop" onclick="stopGeneration()" title="Parar geração" style="display:none;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="6" width="12" height="12" rx="2"/>
+                </svg>
+              </button>
+              <button class="btn-send" id="btn-send" onclick="sendMessage()" disabled>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="input-footer">
+              <span>O Easily AI pode cometer erros. Considere verificar informações importantes.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Código -->
+        <div class="tab-pane" id="tab-codigo">
+          <div class="tab-codigo-content" id="codigo-content">
+            <div class="tab-empty-state">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              <p>Nenhum código gerado ainda</p>
+              <span>Os códigos aparecerão aqui conforme a IA responde.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Preview -->
+        <div class="tab-pane" id="tab-preview">
+          <div class="tab-preview-content" id="preview-content">
+            <div class="tab-empty-state">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <p>Nenhuma página web para preview</p>
+              <span>Gere código HTML para ver o preview aqui.</span>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- end chat-body -->
+    </div>
+
+    <!-- Right Panel (Model Filters) -->
+    <div class="chat-rightpanel" id="rightpanel">
+    <div class="rightpanel-header">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 21v-7a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v7"/>
+          <path d="M9 21v-9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v9"/>
+          <path d="M16 21v-4a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v4"/>
+        </svg>
+        Modelos
+      </h3>
+      <button class="btn-icon" onclick="resetProviderFilter()" title="Mostrar todos">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 3l18 18M21 3l-18 18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="rightpanel-content" id="rightpanel-content">
+      <div class="model-categories" id="model-categories"></div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    <img class="lightbox-image" id="lightbox-image" src="" alt="Imagem ampliada">
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
