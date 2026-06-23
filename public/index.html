@@ -250,6 +250,15 @@
           </svg>
           Imagem
         </button>
+        <button class="chat-tab" data-tab="leitura" onclick="switchMainTab('leitura')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <line x1="8" y1="7" x2="16" y2="7"/>
+            <line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+          Leitura
+        </button>
       </div>
 
       <!-- Tab Content -->
@@ -443,6 +452,105 @@
 
             <div class="imagem-error" id="imagem-error" style="display:none">
               <p id="imagem-error-text"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Leitura -->
+        <div class="tab-pane" id="tab-leitura">
+          <div class="tab-leitura-content">
+            <!-- Upload Area -->
+            <div class="leitura-upload-area" id="leitura-upload-area">
+              <div class="leitura-upload-drop" id="leitura-drop" ondragover="event.preventDefault()" ondrop="leituraDropFile(event)">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/>
+                  <line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+                <p><strong>Clique para enviar</strong> ou arraste um documento aqui</p>
+                <span>PDF, TXT, DOC — até 10MB</span>
+                <input type="file" id="leitura-file-input" accept=".pdf,.txt,.doc,.docx" hidden onchange="leituraUploadFile(this.files[0])">
+              </div>
+            </div>
+
+            <!-- Document Info Bar -->
+            <div class="leitura-info" id="leitura-info" style="display:none">
+              <span class="leitura-info-file" id="leitura-filename"></span>
+              <span class="leitura-info-stats" id="leitura-stats"></span>
+              <button class="leitura-btn-close" onclick="leituraFecharDocumento()" title="Fechar documento">✕</button>
+            </div>
+
+            <!-- Main Content: Text + Q&A -->
+            <div class="leitura-main" id="leitura-main" style="display:none">
+              <!-- Left: Text Panel -->
+              <div class="leitura-text-panel">
+                <div class="leitura-text-header">
+                  <strong>📄 Conteúdo do documento</strong>
+                  <div class="leitura-voice-controls">
+                    <button class="leitura-voice-btn" onclick="leituraPlay()" title="Ler em voz alta" id="leitura-btn-play">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </button>
+                    <button class="leitura-voice-btn" onclick="leituraPause()" title="Pausar" id="leitura-btn-pause" style="display:none">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                    </button>
+                    <button class="leitura-voice-btn" onclick="leituraStop()" title="Parar" id="leitura-btn-stop" style="display:none">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                    </button>
+                    <select class="leitura-speed" id="leitura-speed" onchange="leituraChangeSpeed()">
+                      <option value="0.5">0.5x</option>
+                      <option value="0.75">0.75x</option>
+                      <option value="1" selected>1x</option>
+                      <option value="1.25">1.25x</option>
+                      <option value="1.5">1.5x</option>
+                      <option value="2">2x</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="leitura-text-body" id="leitura-text-body">
+                  <p class="leitura-text-content" id="leitura-text-content"></p>
+                </div>
+              </div>
+
+              <!-- Right: Q&A Panel -->
+              <div class="leitura-qa-panel">
+                <div class="leitura-qa-messages" id="leitura-qa-messages">
+                  <div class="leitura-qa-empty">
+                    <p>Faça perguntas sobre o documento</p>
+                    <span>Ex: "Resuma este documento", "O que diz sobre..."</span>
+                  </div>
+                </div>
+                <div class="leitura-qa-input-area">
+                  <textarea
+                    id="leitura-pergunta-input"
+                    rows="2"
+                    placeholder="Pergunte sobre o documento..."
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();leituraPerguntar()}"
+                  ></textarea>
+                  <button class="leitura-qa-send" id="leitura-btn-perguntar" onclick="leituraPerguntar()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="leitura-qa-voice-toggle">
+                  <label>
+                    <input type="checkbox" id="leitura-auto-voz" checked>
+                    <span>Ler respostas em voz alta</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Loading -->
+            <div class="leitura-loading" id="leitura-loading" style="display:none">
+              <div class="spinner"></div>
+              <p id="leitura-loading-text">Processando documento...</p>
+            </div>
+
+            <!-- Error -->
+            <div class="leitura-error" id="leitura-error" style="display:none">
+              <p id="leitura-error-text"></p>
             </div>
           </div>
         </div>

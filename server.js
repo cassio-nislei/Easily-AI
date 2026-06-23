@@ -1367,6 +1367,98 @@ app.post('/api/txt2img/pollinations', requireAuth, async (req, res) => {
 });
 
 // ============================================================
+// POST /api/leitura/upload - Upload de documento para leitura
+// Extrai texto completo e retorna para o frontend.
+// ============================================================
+app.post('/api/leitura/upload', requireAuth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+    }
+
+    const fileBuffer = readFileSync(req.file.path);
+    let textContent = '';
+    try {
+      textContent = await extractFileContent(fileBuffer, req.file.mimetype, req.file.originalname);
+    } catch (readErr) {
+      console.warn('[leitura] Erro ao extrair texto:', readErr.message);
+      // Fallback: tenta extração simples
+      textContent = fileBuffer.toString('utf-8');
+    }
+
+    // Limpa arquivo temporário
+    try { unlinkSync(req.file.path); } catch {}
+
+    if (!textContent || textContent.trim().length < 20) {
+      return res.status(400).json({ error: 'Não foi possível extrair texto do documento' });
+    }
+
+    console.log(`[leitura] 📄 Documento carregado: ${req.file.originalname} (${textContent.length} chars)`);
+
+    res.json({
+      text: textContent,
+      originalName: req.file.originalname,
+      size: textContent.length,
+      mimeType: req.file.mimetype,
+    });
+  } catch (err) {
+    console.error('[leitura] Erro no upload:', err.message);
+    if (req.file?.path) try { unlinkSync(req.file.path); } catch {}
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/leitura/pergunta - Faz pergunta sobre o documento via SSE
+// Usa o fcc-server (mesmo modelo do chat) com contexto do documento.
+app.post('/api/leitura/pergunta', requireAuth, async (req, res) => {
+  try {
+    const { texto, pergunta, model } = req.body;
+    if (!texto || !texto.trim()) return res.status(400).json({ error: 'Texto do documento obrigatório' });
+    if (!pergunta || !pergunta.trim()) return res.status(400).json({ error: 'Pergunta obrigatória' });
+
+    const chatModel = model || 'qwen-2.5-72b-instruct';
+
+    // Concatena documento + pergunta em um único prompt
+    const SYSTEM_PROMPT = 'Você é um assistente especializado em leitura e análise de documentos. Responda às perguntas com base APENAS no conteúdo do documento fornecido. Seja detalhado e didático.';
+    const message = `DOCUMENTO:\n\n${texto}\n\n---\n\nPERGUNTA: ${pergunta}\n\nResponda com base no documento acima.`;
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+
+    // Envia o prompt para o fcc-server via mcpBridge
+    const result = await mcp.callTool('puter_ai_chat', {
+      message,
+      model: chatModel,
+      system: SYSTEM_PROMPT,
+      max_tokens: 4096,
+    });
+
+    const responseText = result?.content?.[0]?.text || '';
+
+    // Simula streaming para o frontend
+    const chunkSize = 60;
+    for (let i = 0; i < responseText.length; i += chunkSize) {
+      const chunk = responseText.slice(i, i + chunkSize);
+      res.write(`data: ${JSON.stringify({ type: 'chunk', text: chunk })}\n\n`);
+      await new Promise(r => setTimeout(r, 12));
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+    res.end();
+  } catch (err) {
+    console.error('[leitura] Erro na pergunta:', err.message);
+    try {
+      res.write(`data: ${JSON.stringify({ type: 'error', text: err.message })}\n\n`);
+      res.end();
+    } catch {}
+  }
+});
+
+// ============================================================
 // API Chat Routes
 // ============================================================
 

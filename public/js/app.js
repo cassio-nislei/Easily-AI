@@ -2144,6 +2144,261 @@ function closeLightbox() {
   lightboxImage.src = '';
 }
 
+// ============================================================
+// TAB: Leitura — Document Reader com Voz
+// ============================================================
+
+let _leituraTexto = '';
+let _leituraFilename = '';
+let _leituraUtterance = null;
+let _leituraSynth = window.speechSynthesis;
+
+function leituraUploadFile(file) {
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  document.getElementById('leitura-upload-area').style.display = 'none';
+  document.getElementById('leitura-loading').style.display = 'flex';
+  document.getElementById('leitura-loading-text').textContent = 'Extraindo texto do documento...';
+
+  fetch('/api/leitura/upload', {
+    method: 'POST',
+    body: formData,
+  })
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('leitura-loading').style.display = 'none';
+
+      if (data.error) {
+        document.getElementById('leitura-error-text').textContent = data.error;
+        document.getElementById('leitura-error').style.display = 'block';
+        document.getElementById('leitura-upload-area').style.display = 'flex';
+        return;
+      }
+
+      _leituraTexto = data.text;
+      _leituraFilename = data.originalName;
+
+      // Exibe info
+      document.getElementById('leitura-filename').textContent = data.originalName;
+      document.getElementById('leitura-stats').textContent = `${(data.size / 1000).toFixed(0)} caracteres`;
+      document.getElementById('leitura-info').style.display = 'flex';
+
+      // Exibe texto
+      document.getElementById('leitura-text-content').textContent = data.text;
+      document.getElementById('leitura-main').style.display = 'flex';
+
+      // Scroll do texto para o topo
+      document.getElementById('leitura-text-body').scrollTop = 0;
+
+      // Limpa Q&A anterior
+      document.getElementById('leitura-qa-messages').innerHTML =
+        '<div class="leitura-qa-empty"><p>Faça perguntas sobre o documento</p><span>Ex: "Resuma este documento", "O que diz sobre..."</span></div>';
+
+      console.log(`[leitura] Documento carregado: ${data.originalName} (${data.size} chars)`);
+    })
+    .catch(err => {
+      document.getElementById('leitura-loading').style.display = 'none';
+      document.getElementById('leitura-error-text').textContent = err.message || 'Erro ao processar documento';
+      document.getElementById('leitura-error').style.display = 'block';
+      document.getElementById('leitura-upload-area').style.display = 'flex';
+    });
+}
+
+function leituraDropFile(e) {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file) leituraUploadFile(file);
+}
+
+// Clique na área de upload abre seletor de arquivos
+document.addEventListener('DOMContentLoaded', () => {
+  const drop = document.getElementById('leitura-drop');
+  if (drop) {
+    drop.addEventListener('click', () => {
+      document.getElementById('leitura-file-input').click();
+    });
+  }
+});
+
+function leituraFecharDocumento() {
+  leituraStop();
+  _leituraTexto = '';
+  _leituraFilename = '';
+  document.getElementById('leitura-main').style.display = 'none';
+  document.getElementById('leitura-info').style.display = 'none';
+  document.getElementById('leitura-upload-area').style.display = 'flex';
+  document.getElementById('leitura-error').style.display = 'none';
+  document.getElementById('leitura-text-content').textContent = '';
+}
+
+// ── Voice ──
+
+function leituraPlay() {
+  if (!_leituraTexto) return;
+
+  leituraStop();
+
+  _leituraUtterance = new SpeechSynthesisUtterance(_leituraTexto);
+  _leituraUtterance.lang = 'pt-BR';
+  _leituraUtterance.rate = parseFloat(document.getElementById('leitura-speed').value) || 1;
+  _leituraUtterance.pitch = 1;
+
+  _leituraUtterance.onstart = () => {
+    document.getElementById('leitura-btn-play').style.display = 'none';
+    document.getElementById('leitura-btn-pause').style.display = 'flex';
+    document.getElementById('leitura-btn-stop').style.display = 'flex';
+  };
+
+  _leituraUtterance.onend = () => {
+    document.getElementById('leitura-btn-play').style.display = 'flex';
+    document.getElementById('leitura-btn-pause').style.display = 'none';
+    document.getElementById('leitura-btn-stop').style.display = 'none';
+  };
+
+  _leituraUtterance.onerror = (e) => {
+    console.warn('[leitura] Erro de voz:', e.error);
+    leituraStop();
+  };
+
+  _leituraSynth.speak(_leituraUtterance);
+}
+
+function leituraPause() {
+  if (_leituraSynth.speaking) {
+    if (_leituraSynth.paused) {
+      _leituraSynth.resume();
+      document.getElementById('leitura-btn-play').style.display = 'none';
+      document.getElementById('leitura-btn-pause').style.display = 'flex';
+    } else {
+      _leituraSynth.pause();
+      document.getElementById('leitura-btn-play').style.display = 'flex';
+      document.getElementById('leitura-btn-pause').style.display = 'none';
+    }
+  }
+}
+
+function leituraStop() {
+  if (_leituraSynth.speaking) {
+    _leituraSynth.cancel();
+  }
+  _leituraUtterance = null;
+  document.getElementById('leitura-btn-play').style.display = 'flex';
+  document.getElementById('leitura-btn-pause').style.display = 'none';
+  document.getElementById('leitura-btn-stop').style.display = 'none';
+}
+
+function leituraChangeSpeed() {
+  if (_leituraUtterance && _leituraSynth.speaking) {
+    const rate = parseFloat(document.getElementById('leitura-speed').value) || 1;
+    _leituraUtterance.rate = rate;
+    // Web Speech API não permite mudar rate mid-speech,
+    // então precisa reiniciar
+    if (!_leituraSynth.paused) {
+      const pos = _leituraUtterance.text;
+      leituraStop();
+      // Nova utterance com texto completo (não temos posição precisa)
+      leituraPlay();
+    }
+  }
+}
+
+// ── Perguntas ──
+
+function leituraPerguntar() {
+  const input = document.getElementById('leitura-pergunta-input');
+  const pergunta = input.value.trim();
+  if (!pergunta || !_leituraTexto) return;
+
+  input.value = '';
+  const btn = document.getElementById('leitura-btn-perguntar');
+  btn.disabled = true;
+
+  // Adiciona pergunta na UI
+  const msgs = document.getElementById('leitura-qa-messages');
+  const empty = msgs.querySelector('.leitura-qa-empty');
+  if (empty) empty.remove();
+
+  const userMsg = document.createElement('div');
+  userMsg.className = 'leitura-qa-msg user';
+  userMsg.innerHTML = `<div class="msg-text">${leituraEscapeHtml(pergunta)}</div>`;
+  msgs.appendChild(userMsg);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  // Placeholder da resposta
+  const assistantMsg = document.createElement('div');
+  assistantMsg.className = 'leitura-qa-msg assistant';
+  assistantMsg.innerHTML = '<div class="msg-label">Assistente</div><div class="msg-text" id="leitura-resposta-text">🤔 Pensando...</div>';
+  msgs.appendChild(assistantMsg);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  fetch('/api/leitura/pergunta', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ texto: _leituraTexto, pergunta }),
+  })
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let respostaCompleta = '';
+      const respTextEl = document.getElementById('leitura-resposta-text');
+
+      function readChunk() {
+        reader.read().then(({ done, value }) => {
+          if (done) {
+            btn.disabled = false;
+            // Lê resposta em voz alta se toggle ativo
+            if (document.getElementById('leitura-auto-voz').checked && respostaCompleta) {
+              const utter = new SpeechSynthesisUtterance(respostaCompleta);
+              utter.lang = 'pt-BR';
+              utter.rate = parseFloat(document.getElementById('leitura-speed').value) || 1;
+              window.speechSynthesis.speak(utter);
+              respTextEl.innerHTML += '<div class="audio-indicator">🔊 Lendo resposta...</div>';
+            }
+            return;
+          }
+          const text = decoder.decode(value, { stream: true });
+          const lines = text.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === 'chunk') {
+                  respostaCompleta += data.text;
+                  respTextEl.textContent = respostaCompleta;
+                }
+                if (data.type === 'error') {
+                  respTextEl.textContent = '❌ ' + data.text;
+                  btn.disabled = false;
+                }
+              } catch {}
+            }
+          }
+          msgs.scrollTop = msgs.scrollHeight;
+          readChunk();
+        }).catch(err => {
+          respTextEl.textContent = '❌ ' + err.message;
+          btn.disabled = false;
+        });
+      }
+      readChunk();
+    })
+    .catch(err => {
+      const el = document.getElementById('leitura-resposta-text');
+      if (el) el.textContent = '❌ ' + err.message;
+      btn.disabled = false;
+    });
+}
+
+function leituraEscapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && lightbox.classList.contains('active')) {
     closeLightbox();
