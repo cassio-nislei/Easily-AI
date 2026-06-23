@@ -984,46 +984,11 @@ async function sendMessageStreaming(text, model, attachments) {
     console.log('[chat-stream] Modelo selecionado:', model, 'tipo:', modelType);
 
     if (modelType === 'image') {
-      console.log('[chat-stream] Chamando /api/txt2img para:', text?.slice(0, 80));
-      showTyping();
-
-      try {
-        const imgRes = await fetch('/api/txt2img', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: text, model: model }),
-        });
-
-        const imgData = await imgRes.json();
-        console.log('[chat-stream] Resposta txt2img:', imgRes.ok, imgData);
-
-        if (imgRes.ok && imgData.url) {
-          hideTyping();
-          addMessage('assistant', `Imagem gerada para: "${text}"`, [{
-            id: imgData.id || `img-${Date.now()}`,
-            url: imgData.url,
-            originalName: `image-${Date.now()}.png`,
-            mimeType: imgData.mimeType || 'image/png',
-            size: imgData.size || 0,
-            thumbnailUrl: imgData.url,
-          }]);
-          finishSending('');
-          return;
-        } else {
-          hideTyping();
-          const errorMsg = imgData.error || 'Erro desconhecido na geração de imagem';
-          console.log('[chat-stream] Falha no txt2img:', errorMsg);
-          addMessage('assistant', `❌ Erro ao gerar imagem: ${errorMsg}\n\nDica: Verifique se o serviço de imagem está disponível no Puter.`);
-          finishSending('');
-          return;
-        }
-      } catch (fetchErr) {
-        hideTyping();
-        console.error('[chat-stream] Erro na requisição txt2img:', fetchErr);
-        addMessage('assistant', `❌ Erro de conexão ao gerar imagem: ${fetchErr.message}`);
-        finishSending('');
-        return;
-      }
+      // Image models redirect to the dedicated Imagem tab
+      hideTyping();
+      addMessage('assistant', '🖼️ Use a aba **Imagem** acima para gerar imagens com IA gratuitamente.');
+      finishSending('');
+      return;
     }
 
     if (modelType === 'audio') {
@@ -1115,46 +1080,10 @@ async function sendMessageDirect(text, model, attachments) {
     console.log('[chat] Modelo selecionado:', model, 'tipo:', modelType);
 
     if (modelType === 'image') {
-      // Gera imagem via txt2img
-      console.log('[chat] Chamando /api/txt2img para:', text?.slice(0, 80));
-
-      try {
-        const imgRes = await fetch('/api/txt2img', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: text, model: model }),
-        });
-
-        const imgData = await imgRes.json();
-        console.log('[chat] Resposta txt2img:', imgRes.ok, imgData);
-
-        if (imgRes.ok && imgData.url) {
-          hideTyping();
-          addMessage('assistant', `Imagem gerada para: "${text}"`, [{
-            id: imgData.id || `img-${Date.now()}`,
-            url: imgData.url,
-            originalName: `image-${Date.now()}.png`,
-            mimeType: imgData.mimeType || 'image/png',
-            size: imgData.size || 0,
-            thumbnailUrl: imgData.url,
-          }]);
-          finishSending('');
-          return;
-        } else {
-          hideTyping();
-          const errorMsg = imgData.error || 'Erro desconhecido na geração de imagem';
-          console.log('[chat] Falha no txt2img:', errorMsg);
-          addMessage('assistant', `❌ Erro ao gerar imagem: ${errorMsg}\n\nDica: Verifique se o serviço de imagem está disponível no Puter.`);
-          finishSending('');
-          return;
-        }
-      } catch (fetchErr) {
-        hideTyping();
-        console.error('[chat] Erro na requisição txt2img:', fetchErr);
-        addMessage('assistant', `❌ Erro de conexão ao gerar imagem: ${fetchErr.message}`);
-        finishSending('');
-        return;
-      }
+      hideTyping();
+      addMessage('assistant', '🖼️ Use a aba **Imagem** acima para gerar imagens com IA gratuitamente.');
+      finishSending('');
+      return;
     }
 
     if (modelType === 'audio') {
@@ -1270,6 +1199,78 @@ function switchMainTab(tabName) {
   // Lazy-render on first switch
   if (tabName === 'codigo') renderCodigoTab();
   if (tabName === 'preview') renderPreviewTab();
+}
+
+// ============================================================
+// TAB: Imagem — Geração via Pollinations.ai
+// ============================================================
+
+let _ultimoPromptImagem = '';
+
+function gerarImagem() {
+  const prompt = document.getElementById('imagem-prompt').value.trim();
+  if (!prompt) return;
+
+  _ultimoPromptImagem = prompt;
+  const model = document.getElementById('imagem-model').value;
+  const width = parseInt(document.getElementById('imagem-width').value) || 1024;
+  const height = parseInt(document.getElementById('imagem-height').value) || 1024;
+
+  const resultDiv = document.getElementById('imagem-result');
+  const loadingDiv = document.getElementById('imagem-loading');
+  const errorDiv = document.getElementById('imagem-error');
+  const btn = document.getElementById('btn-gerar-imagem');
+
+  resultDiv.style.display = 'none';
+  errorDiv.style.display = 'none';
+  loadingDiv.style.display = 'block';
+  btn.disabled = true;
+  document.getElementById('imagem-status').textContent = 'conectando ao Pollinations...';
+
+  fetch('/api/txt2img/pollinations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, model, width, height }),
+  })
+    .then(res => res.json())
+    .then(data => {
+      loadingDiv.style.display = 'none';
+      btn.disabled = false;
+
+      if (data.error) {
+        errorDiv.style.display = 'block';
+        document.getElementById('imagem-error-text').textContent = data.error;
+        return;
+      }
+
+      const img = document.getElementById('imagem-img');
+      img.src = data.url;
+      img.alt = prompt;
+      resultDiv.style.display = 'block';
+    })
+    .catch(err => {
+      loadingDiv.style.display = 'none';
+      btn.disabled = false;
+      errorDiv.style.display = 'block';
+      document.getElementById('imagem-error-text').textContent = err.message || 'Erro de conexão';
+    });
+}
+
+function downloadImagem() {
+  const img = document.getElementById('imagem-img');
+  if (!img.src) return;
+  const a = document.createElement('a');
+  a.href = img.src;
+  a.download = `pollinations-${Date.now()}.png`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function copiarImagemPrompt() {
+  if (_ultimoPromptImagem) {
+    navigator.clipboard.writeText(_ultimoPromptImagem).catch(() => {});
+  }
 }
 
 function renderCodigoTab() {

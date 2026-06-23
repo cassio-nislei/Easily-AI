@@ -962,6 +962,48 @@ class ClaudeCodeMcpProvider {
   }
 
   // ============================================================
+  // Geração de imagem via Pollinations.ai (gratuito, sem chave)
+  // ============================================================
+
+  /**
+   * Gera imagem via Pollinations.ai — API gratuita, sem necessidade de chave.
+   * Retorna URL direta da imagem hospedada pelo Pollinations.
+   * Modelos suportados: flux (padrão), sd3, turbo, anime, etc.
+   */
+  async txt2img(prompt, model = 'flux') {
+    const encoded = encodeURIComponent(prompt);
+
+    // Mapeia nomes de modelo conhecidos para slugs do Pollinations
+    const modelMap = {
+      'flux': 'flux',
+      'flux-schnell': 'flux',
+      'flux1': 'flux',
+      'sd3': 'sd3',
+      'sdxl': 'sd3',
+      'stable-diffusion': 'sd3',
+      'sd': 'sd3',
+      'turbo': 'turbo',
+      'sdxl-turbo': 'turbo',
+      'anime': 'anime',
+      'dall-e-3': 'flux',
+      'dall-e': 'flux',
+      'default': 'flux',
+    };
+
+    const pollinationsModel = modelMap[model?.toLowerCase()] || 'flux';
+    const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&model=${pollinationsModel}&nologo=true&seed=${Date.now()}`;
+
+    console.log(`[mcp:claude_code] 🖼️ Gerando imagem via Pollinations.ai: modelo=${pollinationsModel}, prompt="${prompt.slice(0, 60)}..."`);
+    console.log(`[mcp:claude_code] 🔗 URL: ${imageUrl}`);
+
+    return {
+      url: imageUrl,
+      mimeType: 'image/png',
+      size: 0,
+    };
+  }
+
+  // ============================================================
   // Tool call dispatch
   // ============================================================
 
@@ -1140,20 +1182,14 @@ class McpBridge {
   /**
    * Geração de imagem (usado pela rota /api/txt2img)
    * Para Puter: usa o método nativo com tentativas de fallback
-   * Para ClaudeCode: roteia via callTool
+   * Para ClaudeCode: retorna null (usa endpoint direto do server.js)
    */
   async txt2img(prompt, model) {
     if (this.current instanceof PuterMcpProvider) {
       return this.current.txt2img(prompt, model);
     }
-    // ClaudeCode: via callTool
-    const result = await this.callTool('puter_ai_txt2img', { prompt, model });
-    const text = result?.content?.[0]?.text || '{}';
-    try {
-      return JSON.parse(text);
-    } catch {
-      return null;
-    }
+    // ClaudeCode: retorna null — usa endpoint /api/txt2img/pollinations
+    return null;
   }
 
   /**

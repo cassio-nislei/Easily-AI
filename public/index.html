@@ -242,6 +242,14 @@
           Preview
           <span class="tab-badge" id="preview-badge" style="display:none">0</span>
         </button>
+        <button class="chat-tab" data-tab="imagem" onclick="switchMainTab('imagem')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          Imagem
+        </button>
       </div>
 
       <!-- Tab Content -->
@@ -363,6 +371,78 @@
               </svg>
               <p>Nenhuma página web para preview</p>
               <span>Gere código HTML para ver o preview aqui.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Imagem -->
+        <div class="tab-pane" id="tab-imagem">
+          <div class="tab-imagem-content">
+            <div class="imagem-header">
+              <h2>🎨 Gerar Imagem</h2>
+              <p>Crie imagens com IA usando <strong>Pollinations.ai</strong> (gratuito, sem cadastro)</p>
+            </div>
+
+            <div class="imagem-input-area">
+              <textarea
+                id="imagem-prompt"
+                rows="3"
+                placeholder="Descreva a imagem que deseja gerar..."
+              ></textarea>
+
+              <div class="imagem-options">
+                <div class="imagem-option">
+                  <label for="imagem-model">Modelo:</label>
+                  <select id="imagem-model">
+                    <option value="flux">Flux (padrão)</option>
+                    <option value="sd3">Stable Diffusion 3</option>
+                    <option value="turbo">Turbo</option>
+                    <option value="anime">Anime</option>
+                  </select>
+                </div>
+                <div class="imagem-option">
+                  <label for="imagem-width">Largura:</label>
+                  <select id="imagem-width">
+                    <option value="512">512</option>
+                    <option value="768">768</option>
+                    <option value="1024" selected>1024</option>
+                  </select>
+                </div>
+                <div class="imagem-option">
+                  <label for="imagem-height">Altura:</label>
+                  <select id="imagem-height">
+                    <option value="512">512</option>
+                    <option value="768">768</option>
+                    <option value="1024" selected>1024</option>
+                  </select>
+                </div>
+              </div>
+
+              <button class="btn-send" id="btn-gerar-imagem" onclick="gerarImagem()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Gerar Imagem
+              </button>
+            </div>
+
+            <div class="imagem-result" id="imagem-result" style="display:none">
+              <div class="imagem-image-container">
+                <img id="imagem-img" src="" alt="Imagem gerada">
+              </div>
+              <div class="imagem-actions">
+                <button class="btn-secondary" onclick="downloadImagem()">📥 Baixar</button>
+                <button class="btn-secondary" onclick="copiarImagemPrompt()">📋 Copiar prompt</button>
+              </div>
+            </div>
+
+            <div class="imagem-loading" id="imagem-loading" style="display:none">
+              <div class="spinner"></div>
+              <p>Gerando imagem... <span id="imagem-status">aguarde</span></p>
+            </div>
+
+            <div class="imagem-error" id="imagem-error" style="display:none">
+              <p id="imagem-error-text"></p>
             </div>
           </div>
         </div>

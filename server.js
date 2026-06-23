@@ -19,6 +19,8 @@ import { join, dirname, extname } from 'node:path';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { inflateSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
+import https from 'node:https';
+import http from 'node:http';
 import { mcp } from './mcpBridge.js';
 import { rag } from './rag.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -1295,6 +1297,72 @@ app.post('/api/txt2img', requireAuth, async (req, res) => {
     console.error('[txt2img] Erro:', err.message);
     console.error('[txt2img] Stack:', err.stack);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/txt2img/pollinations - Geração de imagem gratuita via Pollinations.ai
+// Separa completamente a geração de imagem do fluxo de chat.
+// ============================================================
+app.post('/api/txt2img/pollinations', requireAuth, async (req, res) => {
+  try {
+    const { prompt, model = 'flux', width = 1024, height = 1024 } = req.body;
+    if (!prompt || !prompt.trim()) {
+      return res.status(400).json({ error: 'Prompt obrigatório' });
+    }
+
+    // Mapeia modelos para slugs do Pollinations
+    const modelMap = {
+      'flux': 'flux',
+      'flux-schnell': 'flux',
+      'sd3': 'sd3',
+      'sdxl': 'sd3',
+      'stable-diffusion': 'sd3',
+      'turbo': 'turbo',
+      'anime': 'anime',
+      'dall-e-3': 'flux',
+    };
+
+    const pollinationsModel = modelMap[model?.toLowerCase()] || 'flux';
+    const encoded = encodeURIComponent(prompt);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&model=${pollinationsModel}&nologo=true&seed=${Date.now()}`;
+
+    console.log('[pollinations] 🖼️ Gerando imagem:', imageUrl);
+
+    // Verifica se o serviço responde com uma imagem
+    const imageMod = imageUrl.startsWith('https') ? https : http;
+    const u = new URL(imageUrl);
+
+    const imgBuffer = await new Promise((resolve, reject) => {
+      const req = imageMod.get(imageUrl, { timeout: 30000 }, (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`HTTP ${res.statusCode}`));
+          return;
+        }
+        const chunks = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => resolve(Buffer.concat(chunks)));
+      });
+      req.on('error', reject);
+      req.setTimeout(30000, () => { req.destroy(); reject(new Error('timeout')); });
+    });
+
+    console.log('[pollinations] ✅ Imagem recebida:', imgBuffer.length, 'bytes');
+
+    // Salva localmente
+    const filename = `pollinations-${Date.now()}.png`;
+    const localPath = join(UPLOADS_DIR, filename);
+    writeFileSync(localPath, imgBuffer);
+
+    res.json({
+      url: `/uploads/${filename}`,
+      prompt,
+      model: pollinationsModel,
+      size: imgBuffer.length,
+    });
+  } catch (err) {
+    console.error('[pollinations] ❌ Erro:', err.message);
+    res.status(500).json({ error: `Falha ao gerar imagem: ${err.message}` });
   }
 });
 
